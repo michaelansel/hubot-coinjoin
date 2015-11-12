@@ -84,7 +84,6 @@ class Coinjoin
       @tx.addInput(input.txid, input.vout) for input in @inputs
       @tx.addOutput(output.address, amountPerOutput) for output in @outputs
     catch error
-      throw error
       return [false, "Error when assembling transaction: #{error}"]
 
     [true,
