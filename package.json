@@ -13,6 +13,7 @@
     "url": "https://github.com/hubot-scripts/hubot-coinjoin/issues"
   },
   "dependencies": {
+    "bitcoinjs-lib": "^2.1.3"
   },
   "peerDependencies": {
     "hubot": "2.x"
