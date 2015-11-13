@@ -9,6 +9,7 @@
 #   hubot coinjoin amount <amount in uDFC> - Set the coinjoin amount in WHOLE uDFC (1 DFC = 1e6 uDFC), no decimals
 #   hubot coinjoin add input <transaction> <vout> - Add a previous transaction output ("some coin") to the coinjoin
 #   hubot coinjoin add output <defcoin address> - Add your output address to the coinjoin
+#   hubot coinjoin show - Dump the current state of the coinjoin transaction
 #   hubot coinjoin build - Assemble a transaction out of the provided inputs/outputs
 #   hubot coinjoin add signature - Add your version of the partially signed transaction
 #
@@ -19,6 +20,7 @@
 #   Michael Ansel <mansel@box.com>
 
 bitcoin = require 'bitcoinjs-lib'
+request = require 'request'
 
 # Monkeypatch this in
 bitcoin.networks.defcoin =
@@ -35,6 +37,23 @@ bitcoin.networks.defcoin =
 #DEFAULT_TRANSACTION_FEE=0.001 # Default on the defcoin network
 DEFAULT_TRANSACTION_FEE=0 # Great for testing
 
+USE_ASSMEOW=true
+
+if USE_ASSMEOW?
+  getTxOutputAmount = (txid, vout, cb) ->
+    request "http://defcoin.assmeow.org/rawtx/#{txid}", (error, response, body) ->
+      if not error and response.statusCode is 200
+        try
+          # Super lazy parsing (assume all decimal digits always exist)
+          cb null, parseInt(JSON.parse(body).out[vout].value.replace(/[.]/,'').replace(/^0+/,''))
+        catch error
+          cb error, null
+      else
+        cb error, null
+else
+  getTxOutputAmount = (txid, vout, cb) ->
+    cb 'Transaction lookups disabled', null
+
 class Coinjoin
   constructor: ->
     @inputs = []
@@ -42,12 +61,22 @@ class Coinjoin
     @amount = null
     @tx = null
 
-  addInput: (name, txid, vout) ->
-    @inputs.push
-      txid: txid
-      vout: vout
-      name: name
-    [true, "Input transaction added successfully"]
+  addInput: (name, txid, vout, cb) ->
+    getTxOutputAmount txid, vout, (err, amount) =>
+      @inputs.push
+        txid: txid
+        vout: vout
+        name: name
+        amount: amount
+
+      err = "Coinjoin amount not set" unless err or @amount
+      if err
+        cb [true, "Input transaction added successfully (unable to verify amount: #{err})"]
+      else
+        if amount is @amount
+          cb [true, "Input transaction added successfully (#{amount/100} uDFC)"]
+        else
+          cb [true, "Input transaction added successfully, BUT the amount was wrong (#{amount/100} uDFC != expected #{@amount/100} uDFC)"]
 
   addOutput: (address) ->
     @outputs.push
@@ -97,6 +126,13 @@ class Coinjoin
       count = count + 1 if input.signatures?
     count
 
+  dump: ->
+    {
+      amount: @amount
+      inputs: @inputs
+      outputs: @outputs
+    }
+
   getFee: ->
     # Hardcoded fee for now
     DEFAULT_TRANSACTION_FEE
@@ -119,11 +155,11 @@ module.exports = (robot) ->
 
   robot.respond /coinjoin add input (.+) ([0-9]+)$/i, (res) ->
     cj = getCj res
-    result = cj.addInput res.message.user.name, res.match[1], parseInt(res.match[2])
-    if result[0]
-      res.reply result[1]
-    else
-      res.reply "Unable to add input: #{result[1]}"
+    cj.addInput res.message.user.name, res.match[1], parseInt(res.match[2]), (result) ->
+      if result[0]
+        res.reply result[1]
+      else
+        res.reply "Unable to add input: #{result[1]}"
 
   robot.respond /coinjoin add output (.+)$/i, (res) ->
     cj = getCj res
@@ -158,5 +194,22 @@ module.exports = (robot) ->
     res.reply "2. Each person: add your desired input (from 'listunspent') using '#{robot.name} coinjoin add input <TxID> <vout>'."
     res.reply "3. Each person: add your desired output with '#{robot.name} coinjoin add output <dfcAddress>'."
     res.reply "4. Assemble the transaction! '#{robot.name} coinjoin build'"
+
+  robot.respond /coinjoin show$/i, (res) ->
+    cj = getCj res
+    cjData = cj.dump()
+
+    res.send "Amount: #{cj.amount/100} uDFC"
+    res.send 'Inputs:'
+    if cjData.inputs.length > 0
+      res.send "  #{input.txid}:#{input.vout} (=#{input.amount/100} uDFC) by #{input.name}" for input in cjData.inputs
+    else
+      res.send '  None'
+
+    res.send 'Outputs:'
+    if cjData.outputs.length > 0
+      res.send "  #{output.address}" for output in cjData.outputs
+    else
+      res.send '  None'
 
 module.exports.Coinjoin = Coinjoin
