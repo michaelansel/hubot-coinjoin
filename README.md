@@ -48,8 +48,8 @@ Then add **hubot-coinjoin** to your `external-scripts.json`:
 - Build the transaction
   - `hubot coinjoin build`
   - `hubot-coinjoin` assembles all sources and destinations into a single transaction
-- Each person, validate and sign the transaction
-  - 'decoderawtransaction <txdata>' in debug window and confirm your address is receiving the correct amount
+- Each person, **validate** and then sign the transaction
+  - 'decoderawtransaction <txdata>' in debug window and **confirm your address is receiving the correct amount**
   - 'signrawtransaction <txdata>' (might need to unlock your wallet with 'walletpassphrase <pass> <time>')
   - `hubot coinjoin add signature 0100000002b74...`
 - When all signatures have been entered, coinjoin bot will return the final fully-signed transaction
@@ -83,6 +83,16 @@ user1>> hubot coinjoin build
 hubot>> Transaction assembled. Minus fees, everyone will receive 1000000 uDFC. If you agree, please validate and sign the following transaction:
 hubot>> 0100000002932f65d24d442d5fef57aa797272b1c3d9b6a1c107a5fc80475d2a7535b09a040100000000ffffffff695a3af9ffacb78d5d3e6dd37398f53d64def88b8da67cc9a9bf5743fa375f700100000000ffffffff0200e1f505000000001976a914cc590884f24bf6df48389f3e59755670c5b9176388ac00e1f505000000001976a91479c90aa51632c525f5e69f343559bfab8e82bd7588ac00000000
 hubot>> Using the debug window, run 'decoderawtransaction <txdata>' and validate that you are getting the expected amount of coin back. Then, run 'signrawtransaction <txdata>' to add your stamp of approval (you may need to unlock your wallet with 'walletpassphrase <password> <numSecond>'. Paste the result (no quotes) back in chat like so: 'hubot coinjoin add signature <txdata>'
+
+user1>> hubot coinjoin show
+hubot>>
+Amount: 1000000 uDFC
+Inputs:
+  2c2722b3c2ecf13c5196cf96e586ae6d9b859d23e157ddc71c7879599fa5e6f3:1 (=1000000 uDFC) by michaelansel
+  049ab035752a5d4780fca507c1a1b6d9c3b1727279aa57ef5f2d444dd2652f93:0 (=29000000 uDFC) by michaelansel
+Outputs:
+  DGQkePf8wQ94WGRfnE3yvcVfFr49VrEdoE
+  DQquGGfA8FFuhGH7KGkHmWQHnv2Mqf2K4e
 
 user1>> hubot coinjoin add signature 0100000002f3e6a59f5979781cc7dd57e1239d859b6dae86e596cf96513cf1ecc2b322272c010000006a47304402204bd0a2b8720a958c9c712a643566acd80cb51ac79f2a784bcf94cadc4764554102201efc52b00e6c7e1d5118e86e4e1532d002533f8444c36d9e5599d0d08ba5605f012103f77cc4e76a425abc51d85540f0287e3ffa2a555d66d34876811f15ba8d822e0cffffffff932f65d24d442d5fef57aa797272b1c3d9b6a1c107a5fc80475d2a7535b09a040000000000ffffffff0200e1f505000000001976a9147b9f6e9f666ce481fa81f0eb7abd7bb762ffd3b888ac00e1f505000000001976a914d8220829c0e67513fe7a86c2e9b9b8645581a33b88ac00000000
 hubot>> 1 signatures remaining
